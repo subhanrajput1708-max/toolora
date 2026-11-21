@@ -16,6 +16,7 @@ import { usePageMeta } from '../utils/seo';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { ToolIcon } from '../components/ToolIcon';
 import { NotFoundPage } from './LegalPages';
+import { withBase } from '../utils/paths';
 
 export function GuideDetailPage() {
   const { slug = '' } = useParams<{ slug: string }>();
@@ -72,7 +73,7 @@ export function GuideDetailPage() {
       <article className="bg-white rounded-2xl border border-[#DCE5F0] overflow-hidden">
         <div className="aspect-[16/9] sm:aspect-[21/9] bg-[#EEF6FB] overflow-hidden">
           <img
-            src={guide.thumbnail}
+            src={withBase(guide.thumbnail)}
             alt={guide.thumbnailAlt}
             referrerPolicy="no-referrer"
             className="w-full h-full object-cover"

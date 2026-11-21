@@ -4,6 +4,7 @@ import { ArrowRight, Search } from 'lucide-react';
 import { ALL_GUIDES, GUIDE_CATEGORIES, type GuideCategory } from '../data/guides';
 import { usePageMeta } from '../utils/seo';
 import { Breadcrumbs } from '../components/Breadcrumbs';
+import { withBase } from '../utils/paths';
 
 export function GuidesPage() {
   const [selectedCategory, setSelectedCategory] = useState<'all' | GuideCategory>('all');
@@ -103,7 +104,7 @@ export function GuidesPage() {
               <div>
                 <Link to={guide.path} className="block aspect-[4/3] bg-[#EEF6FB] overflow-hidden">
                   <img
-                    src={guide.thumbnail}
+                    src={withBase(guide.thumbnail)}
                     alt={guide.thumbnailAlt}
                     loading="lazy"
                     referrerPolicy="no-referrer"

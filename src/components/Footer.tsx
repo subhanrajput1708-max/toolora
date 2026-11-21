@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { Mail, Phone, User } from 'lucide-react';
 import { SITE_CONFIG } from '../data/site';
 import { TOOL_CATEGORIES } from '../data/tools';
+import { withBase } from '../utils/paths';
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -14,7 +15,7 @@ export function Footer() {
           <div className="sm:col-span-2 lg:col-span-1 space-y-4">
             <Link to="/" className="inline-flex items-center gap-2.5">
               <img
-                src={SITE_CONFIG.logoPath}
+                src={withBase(SITE_CONFIG.logoPath)}
                 alt="TooloraHub logo"
                 width={32}
                 height={32}

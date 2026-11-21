@@ -16,6 +16,7 @@ import { ALL_GUIDES } from '../data/guides';
 import { HOMEPAGE_FAQS, SITE_CONFIG } from '../data/site';
 import { usePageMeta } from '../utils/seo';
 import { CategoryIcon, ToolIcon } from '../components/ToolIcon';
+import { withBase } from '../utils/paths';
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -325,7 +326,7 @@ export function HomePage() {
               <div>
                 <Link to={guide.path} className="block aspect-[4/3] bg-[#EEF6FB] overflow-hidden">
                   <img
-                    src={guide.thumbnail}
+                    src={withBase(guide.thumbnail)}
                     alt={guide.thumbnailAlt}
                     loading="lazy"
                     referrerPolicy="no-referrer"

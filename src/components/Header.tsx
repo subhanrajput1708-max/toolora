@@ -4,6 +4,7 @@ import { Menu, Search, X, ArrowRight } from 'lucide-react';
 import { ALL_TOOLS, getCategoryById } from '../data/tools';
 import { SITE_CONFIG } from '../data/site';
 import { ToolIcon } from './ToolIcon';
+import { withBase } from '../utils/paths';
 
 const NAV_LINKS = [
   { to: '/', label: 'Home', end: true },
@@ -75,7 +76,7 @@ export function Header() {
             onClick={() => setMobileMenuOpen(false)}
           >
             <img
-              src={SITE_CONFIG.logoPath}
+              src={withBase(SITE_CONFIG.logoPath)}
               alt="TooloraHub logo"
               width={32}
               height={32}

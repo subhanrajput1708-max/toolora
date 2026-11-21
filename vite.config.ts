@@ -13,6 +13,12 @@ interface StaticRouteMeta {
   description: string;
 }
 
+function normalizeBasePath(raw?: string): string {
+  if (!raw || raw.trim() === '' || raw.trim() === '/') return '/';
+  const trimmed = raw.trim().replace(/^\/+|\/+$/g, '');
+  return trimmed ? `/${trimmed}/` : '/';
+}
+
 function escapeHtmlAttr(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -59,10 +65,20 @@ function injectRouteMeta(baseHtml: string, meta: StaticRouteMeta): string {
 }
 
 export default defineConfig(() => {
+  const basePath = normalizeBasePath(process.env.VITE_BASE_PATH);
+
   return {
+    base: basePath,
     plugins: [
       react(),
       tailwindcss(),
+      {
+        name: 'rewrite-public-favicon-base',
+        transformIndexHtml(html: string): string {
+          if (basePath === '/') return html;
+          return html.replace(/href="\/logo\.png"/g, `href="${basePath}logo.png"`);
+        },
+      },
       // Copies src/assets into dist/ and generates static per-route HTML entry points + 404.html for GitHub Pages
       {
         name: 'copy-assets-and-static-routes',
