@@ -2,13 +2,24 @@ import { useEffect, type ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Header } from './Header';
 import { Footer } from './Footer';
+import { TooloraAiChat } from './TooloraAiChat';
 
 export function Layout({ children }: { children: ReactNode }) {
-  const { pathname, search } = useLocation();
+  const { pathname, search, hash, key } = useLocation();
 
   useEffect(() => {
+    if (hash) {
+      const targetId = hash.slice(1);
+      const timer = window.setTimeout(() => {
+        const el = document.getElementById(targetId);
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 40);
+      return () => window.clearTimeout(timer);
+    }
     window.scrollTo({ top: 0, behavior: 'auto' });
-  }, [pathname, search]);
+  }, [pathname, search, hash, key]);
 
   return (
     <div className="min-h-screen flex flex-col bg-[#F5F8FC] text-[#10243E]">
@@ -23,6 +34,7 @@ export function Layout({ children }: { children: ReactNode }) {
         {children}
       </main>
       <Footer />
+      <TooloraAiChat />
     </div>
   );
 }

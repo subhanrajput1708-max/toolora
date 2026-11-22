@@ -1,6 +1,24 @@
 import { useState } from 'react';
 import { Check, Copy, RotateCcw } from 'lucide-react';
 
+function fallbackCopy(text: string): boolean {
+  try {
+    const el = document.createElement('textarea');
+    el.value = text;
+    el.setAttribute('readonly', '');
+    el.style.position = 'fixed';
+    el.style.opacity = '0';
+    el.style.pointerEvents = 'none';
+    document.body.appendChild(el);
+    el.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(el);
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
 export function CopyButton({
   value,
   label = 'Copy Result',
@@ -16,12 +34,16 @@ export function CopyButton({
 
   const handleCopy = async () => {
     if (!value || disabled) return;
+    let ok = false;
     try {
       await navigator.clipboard.writeText(value);
+      ok = true;
+    } catch {
+      ok = fallbackCopy(value);
+    }
+    if (ok) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
-    } catch {
-      setCopied(false);
     }
   };
 
@@ -30,7 +52,7 @@ export function CopyButton({
       type="button"
       onClick={handleCopy}
       disabled={disabled || !value}
-      className={`inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg text-sm font-medium transition-colors duration-150 whitespace-nowrap disabled:opacity-45 disabled:cursor-not-allowed ${
+      className={`inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg text-sm font-medium transition-colors duration-150 whitespace-nowrap disabled:opacity-45 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#16C6C9] ${
         copied
           ? 'bg-[#0C8588] text-white'
           : 'bg-[#12345A] text-white hover:bg-[#1A4678]'
@@ -65,7 +87,7 @@ export function ClearButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg border border-[#D4E0EE] bg-white text-sm font-medium text-[#39506B] hover:border-[#12345A] hover:text-[#12345A] transition-colors duration-150 whitespace-nowrap disabled:opacity-45 disabled:cursor-not-allowed"
+      className="inline-flex items-center justify-center gap-1.5 h-10 px-4 rounded-lg border border-[#D4E0EE] bg-white text-sm font-medium text-[#39506B] hover:border-[#12345A] hover:text-[#12345A] transition-colors duration-150 whitespace-nowrap disabled:opacity-45 disabled:cursor-not-allowed focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#16C6C9]"
     >
       <RotateCcw className="w-4 h-4" aria-hidden="true" />
       <span>{label}</span>

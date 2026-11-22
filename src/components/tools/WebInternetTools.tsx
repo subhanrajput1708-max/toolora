@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeftRight, Download } from 'lucide-react';
 import QRCode from 'qrcode';
+import { SITE_CONFIG } from '../../data/site';
 import { ClearButton, CopyButton } from './ToolSharedUI';
 
 // 9. URL Slug Generator
@@ -13,7 +14,13 @@ export function SlugGeneratorTool() {
   const [separator, setSeparator] = useState<'-' | '_'>('-');
   const [lowercase, setLowercase] = useState(true);
   const [removeStopWords, setRemoveStopWords] = useState(false);
-  const [maxLength, setMaxLength] = useState<number>(80);
+  const [maxLengthStr, setMaxLengthStr] = useState('80');
+
+  const maxLength = useMemo(() => {
+    const parsed = Number(maxLengthStr);
+    if (!Number.isFinite(parsed) || maxLengthStr.trim() === '') return 80;
+    return Math.min(200, Math.max(10, Math.round(parsed)));
+  }, [maxLengthStr]);
 
   const slug = useMemo(() => {
     let normalized = title
@@ -106,8 +113,9 @@ export function SlugGeneratorTool() {
             type="number"
             min={10}
             max={200}
-            value={maxLength}
-            onChange={(e) => setMaxLength(Math.max(10, Number(e.target.value) || 80))}
+            value={maxLengthStr}
+            onChange={(e) => setMaxLengthStr(e.target.value)}
+            onBlur={() => setMaxLengthStr(String(maxLength))}
             className="w-20 h-9 px-2.5 rounded-lg border border-[#D4E0EE] bg-white text-sm text-[#12345A] tabular-nums"
           />
         </div>
@@ -119,7 +127,7 @@ export function SlugGeneratorTool() {
           {slug || <span className="text-[#8DA2BA]">your-url-slug</span>}
         </div>
         <div className="text-xs text-[#5B708B] font-mono break-all">
-          Preview: https://toolorahub.site/{slug || 'your-url-slug'}/
+          Preview: {SITE_CONFIG.domain}/{slug || 'your-url-slug'}/
         </div>
       </div>
 
@@ -133,7 +141,8 @@ export function SlugGeneratorTool() {
 
 // 10. URL Encoder / Decoder
 export function UrlEncoderDecoderTool() {
-  const [input, setInput] = useState('https://toolorahub.site/tools/?q=word counter&category=text & writing');
+  const sampleUrl = `${SITE_CONFIG.domain}/tools/?q=word counter&category=text & writing`;
+  const [input, setInput] = useState(sampleUrl);
   const [mode, setMode] = useState<'encode' | 'decode'>('encode');
   const [scope, setScope] = useState<'component' | 'full'>('component');
 
@@ -194,19 +203,31 @@ export function UrlEncoderDecoderTool() {
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <label htmlFor="url-scope" className="text-xs font-medium text-[#5B708B]">
-            Handling:
-          </label>
-          <select
-            id="url-scope"
-            value={scope}
-            onChange={(e) => setScope(e.target.value as 'component' | 'full')}
-            className="h-9 px-2.5 rounded-lg border border-[#D4E0EE] bg-white text-sm text-[#12345A]"
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setMode('encode');
+              setInput(sampleUrl);
+            }}
+            className="text-xs font-medium text-[#0C8588] hover:text-[#12345A] underline underline-offset-2"
           >
-            <option value="component">Component (encodes :, /, ?, &amp;)</option>
-            <option value="full">Full URI (keeps URL structure)</option>
-          </select>
+            Load sample URL
+          </button>
+          <div className="flex items-center gap-2">
+            <label htmlFor="url-scope" className="text-xs font-medium text-[#5B708B]">
+              Handling:
+            </label>
+            <select
+              id="url-scope"
+              value={scope}
+              onChange={(e) => setScope(e.target.value as 'component' | 'full')}
+              className="h-9 px-2.5 rounded-lg border border-[#D4E0EE] bg-white text-sm text-[#12345A]"
+            >
+              <option value="component">Component (encodes :, /, ?, &amp;)</option>
+              <option value="full">Full URI (keeps URL structure)</option>
+            </select>
+          </div>
         </div>
       </div>
 
@@ -302,7 +323,7 @@ const NAMED_ENCODE_MAP: Record<string, string> = {
 };
 
 export function HtmlEntityConverterTool() {
-  const [input, setInput] = useState('<div class="card">TooloraHub &amp; Tools © 2026</div>');
+  const [input, setInput] = useState('<div class="card">TooloraHub & Tools © 2026</div>');
   const [mode, setMode] = useState<'encode' | 'decode'>('encode');
   const [encodeSpaces, setEncodeSpaces] = useState(false);
 
@@ -366,6 +387,7 @@ export function HtmlEntityConverterTool() {
             rows={7}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            placeholder="Paste HTML markup or entity-encoded text..."
             className="w-full p-3.5 rounded-xl border border-[#D4E0EE] bg-[#FAFBFD] focus:bg-white text-sm font-mono text-[#10243E] focus:outline-none focus:ring-2 focus:ring-[#16C6C9]/40"
           />
         </div>
@@ -378,12 +400,25 @@ export function HtmlEntityConverterTool() {
             rows={7}
             value={output}
             readOnly
+            placeholder="Converted result appears here..."
             className="w-full p-3.5 rounded-xl border border-[#D4E0EE] bg-[#F8FBFF] text-sm font-mono text-[#10243E] focus:outline-none"
           />
         </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
+        <button
+          type="button"
+          disabled={!output}
+          onClick={() => {
+            setInput(output);
+            setMode((prev) => (prev === 'encode' ? 'decode' : 'encode'));
+          }}
+          className="inline-flex items-center gap-1.5 h-10 px-4 rounded-lg border border-[#D4E0EE] bg-white text-sm font-medium text-[#12345A] hover:border-[#16C6C9] disabled:opacity-45"
+        >
+          <ArrowLeftRight className="w-4 h-4 text-[#0FA7AA]" aria-hidden="true" />
+          <span>Swap &amp; Flip Mode</span>
+        </button>
         <CopyButton value={output} label="Copy Output" />
         <ClearButton onClick={() => setInput('')} disabled={!input} />
       </div>
@@ -392,8 +427,19 @@ export function HtmlEntityConverterTool() {
 }
 
 // 12. QR Code Generator
+function getRelativeLuminance(hex: string): number {
+  const clean = hex.replace('#', '');
+  if (clean.length !== 6) return 0;
+  const r = parseInt(clean.slice(0, 2), 16) / 255;
+  const g = parseInt(clean.slice(2, 4), 16) / 255;
+  const b = parseInt(clean.slice(4, 6), 16) / 255;
+  const toLinear = (c: number) => (c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
+  return 0.2126 * toLinear(r) + 0.7152 * toLinear(g) + 0.0722 * toLinear(b);
+}
+
 export function QrCodeGeneratorTool() {
-  const [content, setContent] = useState('https://toolorahub.site/');
+  const defaultQrUrl = `${SITE_CONFIG.domain}/`;
+  const [content, setContent] = useState(defaultQrUrl);
   const [size, setSize] = useState(256);
   const [fgColor, setFgColor] = useState('#12345A');
   const [bgColor, setBgColor] = useState('#FFFFFF');
@@ -401,6 +447,13 @@ export function QrCodeGeneratorTool() {
   const [pngUrl, setPngUrl] = useState('');
   const [svgMarkup, setSvgMarkup] = useState('');
   const [qrError, setQrError] = useState('');
+
+  const lowContrast = useMemo(() => {
+    const l1 = getRelativeLuminance(fgColor);
+    const l2 = getRelativeLuminance(bgColor);
+    const ratio = (Math.max(l1, l2) + 0.05) / (Math.min(l1, l2) + 0.05);
+    return ratio < 3;
+  }, [fgColor, bgColor]);
 
   useEffect(() => {
     let active = true;
@@ -434,6 +487,8 @@ export function QrCodeGeneratorTool() {
       })
       .catch(() => {
         if (!active) return;
+        setPngUrl('');
+        setSvgMarkup('');
         setQrError('Unable to encode the current text into a QR code. Try shortening the text.');
       });
 
@@ -461,6 +516,14 @@ export function QrCodeGeneratorTool() {
     setTimeout(() => URL.revokeObjectURL(url), 500);
   };
 
+  const handleReset = () => {
+    setContent(defaultQrUrl);
+    setSize(256);
+    setFgColor('#12345A');
+    setBgColor('#FFFFFF');
+    setErrorLevel('M');
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
       <div className="lg:col-span-7 space-y-4">
@@ -473,7 +536,7 @@ export function QrCodeGeneratorTool() {
             rows={4}
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="https://toolorahub.site/ or any short text..."
+            placeholder={`${SITE_CONFIG.domain}/ or any short text...`}
             className="w-full p-3.5 rounded-xl border border-[#D4E0EE] bg-[#FAFBFD] focus:bg-white text-sm text-[#10243E] focus:outline-none focus:ring-2 focus:ring-[#16C6C9]/40"
           />
         </div>
@@ -547,11 +610,22 @@ export function QrCodeGeneratorTool() {
           </div>
         </div>
 
+        {lowContrast && (
+          <div role="status" className="p-3 rounded-lg bg-[#FFFBEB] border border-[#FDE68A] text-xs text-[#92400E]">
+            Low contrast between foreground and background colors may prevent phone cameras from scanning this QR code reliably.
+          </div>
+        )}
+
         {qrError && (
           <div role="alert" className="p-3 rounded-lg bg-[#FEF2F2] border border-[#FECACA] text-xs text-[#991B1B]">
             {qrError}
           </div>
         )}
+
+        <div className="flex flex-wrap gap-2 pt-1">
+          <ClearButton onClick={() => setContent('')} label="Clear Text" disabled={!content} />
+          <ClearButton onClick={handleReset} label="Reset Defaults" />
+        </div>
       </div>
 
       <div className="lg:col-span-5 flex flex-col items-center p-6 rounded-xl border border-[#DCE5F0] bg-[#F8FBFF] space-y-4">
@@ -560,6 +634,8 @@ export function QrCodeGeneratorTool() {
             <img
               src={pngUrl}
               alt="Generated QR Code"
+              width={size}
+              height={size}
               className="w-full h-full object-contain"
             />
           ) : (

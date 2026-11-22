@@ -30,7 +30,7 @@ export function Footer() {
               {SITE_CONFIG.tagline}
             </p>
             <p className="text-sm text-[#B7C7DA] leading-relaxed">
-              Free, browser-based utilities for writing, web formatting, everyday calculations, and digital productivity.
+              50 free, browser-based utilities for writing, calculations, finance, dates, conversions, productivity, and web tasks.
             </p>
           </div>
 
@@ -47,12 +47,12 @@ export function Footer() {
               </li>
               <li>
                 <Link to="/tools/" className="text-[#C1D0E1] hover:text-white transition-colors">
-                  All Tools
+                  Tools
                 </Link>
               </li>
               <li>
-                <Link to="/guides/" className="text-[#C1D0E1] hover:text-white transition-colors">
-                  Guides
+                <Link to="/#explore-all-tools" className="text-[#C1D0E1] hover:text-white transition-colors">
+                  Explore All Tools
                 </Link>
               </li>
               <li>
@@ -63,6 +63,11 @@ export function Footer() {
               <li>
                 <Link to="/contact/" className="text-[#C1D0E1] hover:text-white transition-colors">
                   Contact Us
+                </Link>
+              </li>
+              <li>
+                <Link to="/sitemap/" className="text-[#C1D0E1] hover:text-white transition-colors">
+                  Sitemap
                 </Link>
               </li>
             </ul>
@@ -116,6 +121,14 @@ export function Footer() {
                 >
                   Disclaimer
                 </Link>
+              </li>
+              <li>
+                <a
+                  href={withBase('/sitemap.xml')}
+                  className="text-[#C1D0E1] hover:text-white transition-colors"
+                >
+                  XML Sitemap
+                </a>
               </li>
             </ul>
           </div>

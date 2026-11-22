@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Code2, Mail, Phone } from 'lucide-react';
 import { SITE_CONFIG } from '../data/site';
-import { TOOL_CATEGORIES } from '../data/tools';
+import { ALL_TOOLS, TOOL_CATEGORIES } from '../data/tools';
 import { usePageMeta } from '../utils/seo';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { CategoryIcon } from '../components/ToolIcon';
@@ -10,7 +10,7 @@ export function AboutPage() {
   usePageMeta({
     title: 'About Us — TooloraHub & Developer Muhammad Subhan',
     description:
-      'Learn what TooloraHub is, its mission, who it helps, how browser-based tools work, and meet developer Muhammad Subhan (6 years of experience).',
+      'Learn what TooloraHub is, its mission, who it helps, how browser-based tools and Toolora Assistant work, and meet developer Muhammad Subhan (6 years of experience).',
     path: '/about/',
   });
 
@@ -26,7 +26,7 @@ export function AboutPage() {
             About TooloraHub
           </h1>
           <p className="text-base text-[#39506B] leading-relaxed">
-            TooloraHub is a focused online utility website built to make everyday digital tasks faster and less frustrating. Whether you need to check a word count before submitting an article, clean stray formatting out of copied text, encode a URL query parameter, generate a printable QR code, or work out a percentage or date difference, TooloraHub puts 22 practical utilities in one clean, organized place.
+            TooloraHub is a focused online utility website built to make everyday digital tasks faster and less frustrating. Whether you need to check a word count before submitting an article, clean stray formatting out of copied text, calculate loan EMIs or profit margins, format JSON, generate a strong password, create a printable QR code, or convert units and dates, TooloraHub puts {ALL_TOOLS.length} practical utilities in one clean, organized place.
           </p>
           <p className="text-base text-[#39506B] leading-relaxed">
             Our purpose and mission are straightforward: provide dependable, easy-to-understand browser tools without login walls, software downloads, or cluttered interfaces that bury simple controls under distractions.
@@ -39,7 +39,7 @@ export function AboutPage() {
             What TooloraHub Offers
           </h2>
           <p className="text-sm sm:text-base text-[#4B617D] leading-relaxed">
-            All 22 utilities are organized into four clear categories alongside practical written guides explaining the concepts behind them:
+            All {ALL_TOOLS.length} utilities are organized into {TOOL_CATEGORIES.length} focused categories, supported by a built-in Toolora Assistant to help visitors pick and use tools quickly:
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {TOOL_CATEGORIES.map((category) => (
@@ -111,7 +111,7 @@ export function AboutPage() {
             Usability, Simplicity &amp; Transparency
           </h2>
           <p className="text-sm sm:text-base text-[#39506B] leading-relaxed">
-            TooloraHub runs its utilities directly inside your web browser using standard JavaScript rather than uploading your pasted text or calculator numbers to a remote processing server. Because every calculation happens locally on your device, results update immediately as you type.
+            TooloraHub runs its {ALL_TOOLS.length} utilities and Toolora Assistant directly inside your web browser using standard JavaScript rather than storing your pasted text, generated passwords, assistant queries, or calculator numbers in a server database. Because everything runs locally on your device, results and tool recommendations appear immediately as you work.
           </p>
           <p className="text-sm sm:text-base text-[#39506B] leading-relaxed">
             We also believe in being clear about what each tool can and cannot do. Every tool page explains how its calculation or text transformation works and highlights edge cases—such as rounding rules, punctuation boundaries, or date-system assumptions—so you know how to interpret the result.
@@ -144,7 +144,7 @@ export function AboutPage() {
                 {SITE_CONFIG.developer.bio}
               </p>
               <p className="text-sm text-[#4B617D] leading-relaxed">
-                Bug fixes, tool refinements, and new educational guides are maintained directly by Muhammad Subhan based on practical use cases and user feedback.
+                Bug fixes, tool refinements, and new utility features are maintained directly by Muhammad Subhan based on practical use cases and visitor feedback.
               </p>
             </div>
           </div>
@@ -156,7 +156,7 @@ export function AboutPage() {
             Looking Ahead
           </h2>
           <p className="text-sm sm:text-base text-[#39506B] leading-relaxed">
-            TooloraHub is designed to grow thoughtfully over time. Rather than adding hundreds of shallow or repetitive widgets, future updates focus on refining existing calculators and text utilities, improving keyboard and screen-reader accessibility, and expanding our library of plain-language guides so every feature stays genuinely useful.
+            TooloraHub is designed to grow thoughtfully over time. Rather than adding hundreds of shallow or repetitive widgets, future updates focus on refining existing calculators and text utilities, improving keyboard and screen-reader accessibility, and adding genuinely helpful new utilities requested by users.
           </p>
         </section>
 

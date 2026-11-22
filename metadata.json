@@ -1,6 +1,8 @@
 {
   "name": "TooloraHub",
-  "description": "Simple Tools. Smarter Everyday Work. Free, easy-to-use online text, web, calculator, and productivity utilities.",
+  "description": "Use free online tools at TooloraHub for calculations, text editing, conversions, and everyday tasks. Simple, useful tools designed to help you get things done.",
   "requestFramePermissions": [],
-  "majorCapabilities": []
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
 }

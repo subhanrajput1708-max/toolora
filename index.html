@@ -3,12 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>TooloraHub — Simple Tools. Smarter Everyday Work.</title>
-    <meta
-      name="description"
-      content="Free, easy-to-use online tools designed to help you work smarter, save time, and simplify everyday digital tasks."
-    />
+    <title>TooloraHub - Free Online Tools for Calculations, Text & Productivity</title>
+    <meta name="description" content="Use free online tools at TooloraHub for calculations, text editing, conversions, and everyday tasks. Simple, useful tools designed to help you get things done." />
+    <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://toolorahub.site/" />
+    <link rel="sitemap" type="application/xml" title="Sitemap" href="/sitemap.xml" />
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/logo.png" />
 
@@ -16,20 +15,14 @@
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="TooloraHub" />
     <meta property="og:url" content="https://toolorahub.site/" />
-    <meta property="og:title" content="TooloraHub — Simple Tools. Smarter Everyday Work." />
-    <meta
-      property="og:description"
-      content="Free, easy-to-use online tools designed to help you work smarter, save time, and simplify everyday digital tasks."
-    />
+    <meta property="og:title" content="TooloraHub - Free Online Tools for Calculations, Text & Productivity" />
+    <meta property="og:description" content="Use free online tools at TooloraHub for calculations, text editing, conversions, and everyday tasks. Simple, useful tools designed to help you get things done." />
     <meta property="og:image" content="https://toolorahub.site/logo.png" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="TooloraHub — Simple Tools. Smarter Everyday Work." />
-    <meta
-      name="twitter:description"
-      content="Free, easy-to-use online tools designed to help you work smarter, save time, and simplify everyday digital tasks."
-    />
+    <meta name="twitter:title" content="TooloraHub - Free Online Tools for Calculations, Text & Productivity" />
+    <meta name="twitter:description" content="Use free online tools at TooloraHub for calculations, text editing, conversions, and everyday tasks. Simple, useful tools designed to help you get things done." />
     <meta name="twitter:image" content="https://toolorahub.site/logo.png" />
 
     <!-- Google Fonts: Plus Jakarta Sans + DM Sans + JetBrains Mono -->
@@ -44,14 +37,34 @@
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
-        "@type": "WebSite",
-        "name": "TooloraHub",
-        "url": "https://toolorahub.site/",
-        "description": "Free, easy-to-use online tools designed to help you work smarter, save time, and simplify everyday digital tasks.",
-        "author": {
-          "@type": "Person",
-          "name": "Muhammad Subhan"
-        }
+        "@graph": [
+          {
+            "@type": "WebSite",
+            "name": "TooloraHub",
+            "url": "https://toolorahub.site/",
+            "description": "Use free online tools at TooloraHub for calculations, text editing, conversions, and everyday tasks. Simple, useful tools designed to help you get things done.",
+            "potentialAction": {
+              "@type": "SearchAction",
+              "target": "https://toolorahub.site/tools/?q={search_term_string}",
+              "query-input": "required name=search_term_string"
+            }
+          },
+          {
+            "@type": "Organization",
+            "name": "TooloraHub",
+            "url": "https://toolorahub.site/",
+            "logo": "https://toolorahub.site/logo.png",
+            "founder": {
+              "@type": "Person",
+              "name": "Muhammad Subhan"
+            },
+            "contactPoint": {
+              "@type": "ContactPoint",
+              "email": "subhanrajput3222@gmail.com",
+              "contactType": "customer support"
+            }
+          }
+        ]
       }
     </script>
   </head>

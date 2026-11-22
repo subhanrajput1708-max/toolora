@@ -103,10 +103,11 @@ export function WordCounterTool() {
 export function CaseConverterTool() {
   const [text, setText] = useState('');
 
+  // Keeps internal apostrophes lowercase (e.g. "don't" -> "Don't", not "Don'T")
   const toTitleCase = (str: string) =>
     str
       .toLowerCase()
-      .replace(/\b([a-z])/g, (char) => char.toUpperCase());
+      .replace(/(^|[\s\-_/(\["“])([a-z])/g, (_, prefix: string, char: string) => `${prefix}${char.toUpperCase()}`);
 
   const toSentenceCase = (str: string) =>
     str
@@ -146,8 +147,7 @@ export function CaseConverterTool() {
       .join('-');
 
   const toAlternatingCase = (str: string) =>
-    str
-      .split('')
+    Array.from(str)
       .map((ch, idx) => (idx % 2 === 0 ? ch.toLowerCase() : ch.toUpperCase()))
       .join('');
 
@@ -171,7 +171,7 @@ export function CaseConverterTool() {
         </label>
         <button
           type="button"
-          onClick={() => setText('Simple tools for smarter everyday work')}
+          onClick={() => setText("Simple tools don't have to feel complicated")}
           className="text-xs font-medium text-[#0C8588] hover:text-[#12345A] underline underline-offset-2"
         >
           Load sample phrase
@@ -542,9 +542,20 @@ export function CharacterCounterTool() {
       </div>
 
       <div>
-        <label htmlFor="char-counter-input" className="block text-sm font-medium text-[#12345A] mb-2">
-          Text to inspect
-        </label>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+          <label htmlFor="char-counter-input" className="text-sm font-medium text-[#12345A]">
+            Text to inspect
+          </label>
+          <button
+            type="button"
+            onClick={() =>
+              setText('Free online utilities for writing, URLs, and everyday math — TooloraHub.')
+            }
+            className="text-xs font-medium text-[#0C8588] hover:text-[#12345A] underline underline-offset-2"
+          >
+            Load sample text
+          </button>
+        </div>
         <textarea
           id="char-counter-input"
           rows={6}
@@ -588,7 +599,7 @@ export function CharacterCounterTool() {
   );
 }
 
-// 6. Text Diff Checker (LCS Line Diff)
+// 6. Text Diff Checker (Prefix/Suffix trimmed LCS with large-input guard)
 interface DiffLine {
   type: 'equal' | 'added' | 'removed';
   text: string;
@@ -596,12 +607,14 @@ interface DiffLine {
   rightNum?: number;
 }
 
+const MAX_LCS_CELLS = 1_200_000;
+
 function computeLineDiff(
   leftText: string,
   rightText: string,
   ignoreCase: boolean,
   ignoreWhitespace: boolean
-): DiffLine[] {
+): { lines: DiffLine[]; fallbackUsed: boolean } {
   const leftLines = leftText === '' ? [] : leftText.split(/\r?\n/);
   const rightLines = rightText === '' ? [] : rightText.split(/\r?\n/);
 
@@ -611,59 +624,131 @@ function computeLineDiff(
     return val;
   };
 
-  const m = leftLines.length;
-  const n = rightLines.length;
-  const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+  // Trim identical prefix and suffix first to shrink DP matrix
+  let prefixLen = 0;
+  while (
+    prefixLen < leftLines.length &&
+    prefixLen < rightLines.length &&
+    normalize(leftLines[prefixLen]) === normalize(rightLines[prefixLen])
+  ) {
+    prefixLen++;
+  }
 
-  for (let i = m - 1; i >= 0; i--) {
-    for (let j = n - 1; j >= 0; j--) {
-      if (normalize(leftLines[i]) === normalize(rightLines[j])) {
-        dp[i][j] = dp[i + 1][j + 1] + 1;
+  let suffixLen = 0;
+  while (
+    suffixLen < leftLines.length - prefixLen &&
+    suffixLen < rightLines.length - prefixLen &&
+    normalize(leftLines[leftLines.length - 1 - suffixLen]) ===
+      normalize(rightLines[rightLines.length - 1 - suffixLen])
+  ) {
+    suffixLen++;
+  }
+
+  const prefix: DiffLine[] = [];
+  for (let p = 0; p < prefixLen; p++) {
+    prefix.push({ type: 'equal', text: rightLines[p], leftNum: p + 1, rightNum: p + 1 });
+  }
+
+  const midLeft = leftLines.slice(prefixLen, leftLines.length - suffixLen);
+  const midRight = rightLines.slice(prefixLen, rightLines.length - suffixLen);
+  const m = midLeft.length;
+  const n = midRight.length;
+
+  const midResult: DiffLine[] = [];
+  let fallbackUsed = false;
+
+  if (m * n > MAX_LCS_CELLS) {
+    // Linear line-by-line fallback for huge divergent texts to prevent browser memory crash
+    fallbackUsed = true;
+    const maxMid = Math.max(m, n);
+    for (let k = 0; k < maxMid; k++) {
+      const hasL = k < m;
+      const hasR = k < n;
+      if (hasL && hasR && normalize(midLeft[k]) === normalize(midRight[k])) {
+        midResult.push({
+          type: 'equal',
+          text: midRight[k],
+          leftNum: prefixLen + k + 1,
+          rightNum: prefixLen + k + 1,
+        });
       } else {
-        dp[i][j] = Math.max(dp[i + 1][j], dp[i][j + 1]);
+        if (hasL) {
+          midResult.push({ type: 'removed', text: midLeft[k], leftNum: prefixLen + k + 1 });
+        }
+        if (hasR) {
+          midResult.push({ type: 'added', text: midRight[k], rightNum: prefixLen + k + 1 });
+        }
       }
     }
-  }
+  } else {
+    const dp: number[][] = Array.from({ length: m + 1 }, () => Array(n + 1).fill(0));
+    for (let i = m - 1; i >= 0; i--) {
+      for (let j = n - 1; j >= 0; j--) {
+        if (normalize(midLeft[i]) === normalize(midRight[j])) {
+          dp[i][j] = dp[i + 1][j + 1] + 1;
+        } else {
+          dp[i][j] = Math.max(dp[i + 1][j], dp[i][j + 1]);
+        }
+      }
+    }
 
-  const result: DiffLine[] = [];
-  let i = 0;
-  let j = 0;
-  while (i < m && j < n) {
-    if (normalize(leftLines[i]) === normalize(rightLines[j])) {
-      result.push({ type: 'equal', text: rightLines[j], leftNum: i + 1, rightNum: j + 1 });
+    let i = 0;
+    let j = 0;
+    while (i < m && j < n) {
+      if (normalize(midLeft[i]) === normalize(midRight[j])) {
+        midResult.push({
+          type: 'equal',
+          text: midRight[j],
+          leftNum: prefixLen + i + 1,
+          rightNum: prefixLen + j + 1,
+        });
+        i++;
+        j++;
+      } else if (dp[i + 1][j] >= dp[i][j + 1]) {
+        midResult.push({ type: 'removed', text: midLeft[i], leftNum: prefixLen + i + 1 });
+        i++;
+      } else {
+        midResult.push({ type: 'added', text: midRight[j], rightNum: prefixLen + j + 1 });
+        j++;
+      }
+    }
+    while (i < m) {
+      midResult.push({ type: 'removed', text: midLeft[i], leftNum: prefixLen + i + 1 });
       i++;
-      j++;
-    } else if (dp[i + 1][j] >= dp[i][j + 1]) {
-      result.push({ type: 'removed', text: leftLines[i], leftNum: i + 1 });
-      i++;
-    } else {
-      result.push({ type: 'added', text: rightLines[j], rightNum: j + 1 });
+    }
+    while (j < n) {
+      midResult.push({ type: 'added', text: midRight[j], rightNum: prefixLen + j + 1 });
       j++;
     }
   }
-  while (i < m) {
-    result.push({ type: 'removed', text: leftLines[i], leftNum: i + 1 });
-    i++;
-  }
-  while (j < n) {
-    result.push({ type: 'added', text: rightLines[j], rightNum: j + 1 });
-    j++;
+
+  const suffix: DiffLine[] = [];
+  for (let s = 0; s < suffixLen; s++) {
+    const lIdx = leftLines.length - suffixLen + s;
+    const rIdx = rightLines.length - suffixLen + s;
+    suffix.push({
+      type: 'equal',
+      text: rightLines[rIdx],
+      leftNum: lIdx + 1,
+      rightNum: rIdx + 1,
+    });
   }
 
-  return result;
+  return { lines: [...prefix, ...midResult, ...suffix], fallbackUsed };
 }
 
+const SAMPLE_DIFF_ORIG =
+  'TooloraHub provides free online tools.\nWord Counter\nCase Converter\nText Cleaner';
+const SAMPLE_DIFF_MOD =
+  'TooloraHub provides free, fast online tools.\nWord Counter\nCharacter Counter\nCase Converter\nText Cleaner';
+
 export function TextDiffCheckerTool() {
-  const [original, setOriginal] = useState(
-    'TooloraHub provides free online tools.\nWord Counter\nCase Converter\nText Cleaner'
-  );
-  const [modified, setModified] = useState(
-    'TooloraHub provides free, fast online tools.\nWord Counter\nCharacter Counter\nCase Converter\nText Cleaner'
-  );
+  const [original, setOriginal] = useState(SAMPLE_DIFF_ORIG);
+  const [modified, setModified] = useState(SAMPLE_DIFF_MOD);
   const [ignoreCase, setIgnoreCase] = useState(false);
   const [ignoreWhitespace, setIgnoreWhitespace] = useState(false);
 
-  const diff = useMemo(
+  const { lines: diff, fallbackUsed } = useMemo(
     () => computeLineDiff(original, modified, ignoreCase, ignoreWhitespace),
     [original, modified, ignoreCase, ignoreWhitespace]
   );
@@ -699,17 +784,29 @@ export function TextDiffCheckerTool() {
           </label>
         </div>
 
-        <button
-          type="button"
-          onClick={() => {
-            setOriginal(modified);
-            setModified(original);
-          }}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#D4E0EE] bg-white text-xs font-medium text-[#12345A] hover:border-[#16C6C9]"
-        >
-          <ArrowLeftRight className="w-3.5 h-3.5 text-[#0FA7AA]" aria-hidden="true" />
-          <span>Swap Texts</span>
-        </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setOriginal(SAMPLE_DIFF_ORIG);
+              setModified(SAMPLE_DIFF_MOD);
+            }}
+            className="text-xs font-medium text-[#0C8588] hover:text-[#12345A] underline underline-offset-2 px-2"
+          >
+            Load sample
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setOriginal(modified);
+              setModified(original);
+            }}
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[#D4E0EE] bg-white text-xs font-medium text-[#12345A] hover:border-[#16C6C9]"
+          >
+            <ArrowLeftRight className="w-3.5 h-3.5 text-[#0FA7AA]" aria-hidden="true" />
+            <span>Swap Texts</span>
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -722,6 +819,7 @@ export function TextDiffCheckerTool() {
             rows={7}
             value={original}
             onChange={(e) => setOriginal(e.target.value)}
+            placeholder="Paste original text..."
             className="w-full p-3.5 rounded-xl border border-[#D4E0EE] bg-[#FAFBFD] focus:bg-white text-sm font-mono text-[#10243E] focus:outline-none focus:ring-2 focus:ring-[#16C6C9]/40"
           />
         </div>
@@ -734,10 +832,17 @@ export function TextDiffCheckerTool() {
             rows={7}
             value={modified}
             onChange={(e) => setModified(e.target.value)}
+            placeholder="Paste revised text..."
             className="w-full p-3.5 rounded-xl border border-[#D4E0EE] bg-[#FAFBFD] focus:bg-white text-sm font-mono text-[#10243E] focus:outline-none focus:ring-2 focus:ring-[#16C6C9]/40"
           />
         </div>
       </div>
+
+      {fallbackUsed && (
+        <div role="status" className="p-3 rounded-lg bg-[#FFFBEB] border border-[#FDE68A] text-xs text-[#92400E]">
+          Very large differing text detected—using fast line-index comparison to keep your browser responsive.
+        </div>
+      )}
 
       <div className="rounded-xl border border-[#DCE5F0] overflow-hidden">
         <div className="px-4 py-2.5 bg-[#F8FBFF] border-b border-[#DCE5F0] flex flex-wrap items-center justify-between gap-2 text-xs font-medium">
@@ -796,6 +901,8 @@ export function TextDiffCheckerTool() {
 }
 
 // 7. Line Counter
+const MAX_LINE_PREVIEW = 500;
+
 export function LineCounterTool() {
   const [text, setText] = useState('');
   const [showNumbered, setShowNumbered] = useState(true);
@@ -834,19 +941,30 @@ export function LineCounterTool() {
       </div>
 
       <div>
-        <div className="flex items-center justify-between mb-1.5">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5">
           <label htmlFor="line-counter-input" className="text-sm font-medium text-[#12345A]">
             Paste your lines
           </label>
-          <label className="inline-flex items-center gap-2 text-xs text-[#39506B] cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showNumbered}
-              onChange={(e) => setShowNumbered(e.target.checked)}
-              className="w-3.5 h-3.5 accent-[#12345A]"
-            />
-            <span>Show numbered preview</span>
-          </label>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() =>
+                setText('First line item\nSecond line item\n\nFourth line after blank row\nFifth final line')
+              }
+              className="text-xs font-medium text-[#0C8588] hover:text-[#12345A] underline underline-offset-2"
+            >
+              Load sample lines
+            </button>
+            <label className="inline-flex items-center gap-2 text-xs text-[#39506B] cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showNumbered}
+                onChange={(e) => setShowNumbered(e.target.checked)}
+                className="w-3.5 h-3.5 accent-[#12345A]"
+              />
+              <span>Show numbered preview</span>
+            </label>
+          </div>
         </div>
         <textarea
           id="line-counter-input"
@@ -859,17 +977,24 @@ export function LineCounterTool() {
       </div>
 
       {showNumbered && stats.lines.length > 0 && (
-        <div className="rounded-xl border border-[#DCE5F0] bg-[#F8FBFF] max-h-64 overflow-y-auto divide-y divide-[#EAEFF7] font-mono text-xs sm:text-sm">
-          {stats.lines.map((line, i) => (
-            <div key={i} className="flex items-start gap-3 px-3 py-1.5">
-              <span className="w-8 shrink-0 text-right text-[#7E92AA] select-none tabular-nums">
-                {i + 1}
-              </span>
-              <span className="whitespace-pre-wrap break-words text-[#10243E]">
-                {line || <span className="text-[#93A7BF] italic">(blank line)</span>}
-              </span>
+        <div className="rounded-xl border border-[#DCE5F0] bg-[#F8FBFF] overflow-hidden">
+          {stats.lines.length > MAX_LINE_PREVIEW && (
+            <div className="px-3 py-2 bg-[#EEF6FB] border-b border-[#DCE5F0] text-xs text-[#39506B]">
+              Showing first {MAX_LINE_PREVIEW} of {stats.lines.length.toLocaleString()} lines in preview. All lines are included in the counts above.
             </div>
-          ))}
+          )}
+          <div className="max-h-64 overflow-y-auto divide-y divide-[#EAEFF7] font-mono text-xs sm:text-sm">
+            {stats.lines.slice(0, MAX_LINE_PREVIEW).map((line, i) => (
+              <div key={i} className="flex items-start gap-3 px-3 py-1.5">
+                <span className="w-8 shrink-0 text-right text-[#7E92AA] select-none tabular-nums">
+                  {i + 1}
+                </span>
+                <span className="whitespace-pre-wrap break-words text-[#10243E]">
+                  {line || <span className="text-[#93A7BF] italic">(blank line)</span>}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
@@ -892,19 +1017,23 @@ const STOP_WORDS = new Set([
   'have', 'has', 'had', 'we', 'you', 'they', 'their', 'its', 'can', 'will', 'your',
 ]);
 
+const SAMPLE_FREQUENCY =
+  'Simple tools help you work smarter every day. Good tools save time, keep everyday work organized, and make writing clearer.';
+
 export function WordFrequencyCounterTool() {
-  const [text, setText] = useState(
-    'Simple tools help you work smarter every day. Good tools save time, keep everyday work organized, and make writing clearer.'
-  );
+  const [text, setText] = useState(SAMPLE_FREQUENCY);
   const [ignoreStopWords, setIgnoreStopWords] = useState(true);
   const [minLength, setMinLength] = useState(2);
 
   const frequency = useMemo(() => {
-    const words = (text.toLowerCase().match(/[\p{L}\p{N}']+/gu) || []).filter((w) => {
-      if (w.length < minLength) return false;
-      if (ignoreStopWords && STOP_WORDS.has(w)) return false;
-      return true;
-    });
+    const rawTokens = text.toLowerCase().match(/[\p{L}\p{N}']+/gu) || [];
+    const words = rawTokens
+      .map((w) => w.replace(/^'+|'+$/g, ''))
+      .filter((w) => {
+        if (!w || w.length < minLength) return false;
+        if (ignoreStopWords && STOP_WORDS.has(w)) return false;
+        return true;
+      });
 
     const counts = new Map<string, number>();
     for (const word of words) {
@@ -942,21 +1071,30 @@ export function WordFrequencyCounterTool() {
           />
           <span>Exclude common stop words (the, and, is...)</span>
         </label>
-        <div className="flex items-center gap-2">
-          <label htmlFor="min-word-len" className="text-xs font-medium text-[#5B708B]">
-            Min word length:
-          </label>
-          <select
-            id="min-word-len"
-            value={minLength}
-            onChange={(e) => setMinLength(Number(e.target.value))}
-            className="h-9 px-2.5 rounded-lg border border-[#D4E0EE] bg-white text-sm text-[#12345A]"
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setText(SAMPLE_FREQUENCY)}
+            className="text-xs font-medium text-[#0C8588] hover:text-[#12345A] underline underline-offset-2"
           >
-            <option value={1}>1+ chars</option>
-            <option value={2}>2+ chars</option>
-            <option value={3}>3+ chars</option>
-            <option value={4}>4+ chars</option>
-          </select>
+            Load sample
+          </button>
+          <div className="flex items-center gap-2">
+            <label htmlFor="min-word-len" className="text-xs font-medium text-[#5B708B]">
+              Min word length:
+            </label>
+            <select
+              id="min-word-len"
+              value={minLength}
+              onChange={(e) => setMinLength(Number(e.target.value))}
+              className="h-9 px-2.5 rounded-lg border border-[#D4E0EE] bg-white text-sm text-[#12345A]"
+            >
+              <option value={1}>1+ chars</option>
+              <option value={2}>2+ chars</option>
+              <option value={3}>3+ chars</option>
+              <option value={4}>4+ chars</option>
+            </select>
+          </div>
         </div>
       </div>
 

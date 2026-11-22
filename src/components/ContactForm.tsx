@@ -78,7 +78,20 @@ export function ContactForm({ compact = false }: { compact?: boolean }) {
       await navigator.clipboard.writeText(summary);
       setCopiedFallback(true);
     } catch {
-      setCopiedFallback(false);
+      try {
+        const el = document.createElement('textarea');
+        el.value = summary;
+        el.setAttribute('readonly', '');
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(el);
+        setCopiedFallback(ok);
+      } catch {
+        setCopiedFallback(false);
+      }
     }
   };
 

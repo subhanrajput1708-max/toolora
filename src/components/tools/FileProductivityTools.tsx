@@ -27,12 +27,18 @@ function buildSentence(wordCount: number, offset: number): string {
 
 export function LoremIpsumGeneratorTool() {
   const [unit, setUnit] = useState<'paragraphs' | 'sentences' | 'words'>('paragraphs');
-  const [count, setCount] = useState(3);
+  const [countStr, setCountStr] = useState('3');
   const [startClassic, setStartClassic] = useState(true);
   const [wrapHtml, setWrapHtml] = useState(false);
 
+  const count = useMemo(() => {
+    const parsed = Number(countStr);
+    if (!Number.isFinite(parsed) || countStr.trim() === '') return 3;
+    return Math.min(50, Math.max(1, Math.round(parsed)));
+  }, [countStr]);
+
   const generated = useMemo(() => {
-    const safeCount = Math.min(50, Math.max(1, count));
+    const safeCount = count;
     const classicSentence =
       'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.';
 
@@ -90,8 +96,9 @@ export function LoremIpsumGeneratorTool() {
             type="number"
             min={1}
             max={50}
-            value={count}
-            onChange={(e) => setCount(Math.min(50, Math.max(1, Number(e.target.value) || 1)))}
+            value={countStr}
+            onChange={(e) => setCountStr(e.target.value)}
+            onBlur={() => setCountStr(String(count))}
             className="w-20 h-9 px-2.5 rounded-lg border border-[#D4E0EE] bg-white text-sm font-mono text-[#12345A] tabular-nums"
           />
         </div>
@@ -151,15 +158,33 @@ export function LoremIpsumGeneratorTool() {
           <span>Download .txt</span>
         </button>
         <CopyButton value={generated} label="Copy Placeholder Text" />
+        <ClearButton
+          onClick={() => {
+            setUnit('paragraphs');
+            setCountStr('3');
+            setStartClassic(true);
+            setWrapHtml(false);
+          }}
+          label="Reset"
+        />
       </div>
     </div>
   );
 }
 
 // 20. Reading Time Calculator
+const SAMPLE_ARTICLE =
+  'Clear structure helps online readers scan faster and stay engaged. When your paragraphs are balanced and subheadings break up dense explanations, readers can follow complex topics effortlessly from introduction to conclusion.';
+
 export function ReadingTimeCalculatorTool() {
   const [text, setText] = useState('');
-  const [wpm, setWpm] = useState(200);
+  const [wpmStr, setWpmStr] = useState('200');
+
+  const wpm = useMemo(() => {
+    const parsed = Number(wpmStr);
+    if (!Number.isFinite(parsed) || wpmStr.trim() === '') return 200;
+    return Math.min(600, Math.max(60, Math.round(parsed)));
+  }, [wpmStr]);
 
   const metrics = useMemo(() => {
     const trimmed = text.trim();
@@ -197,7 +222,7 @@ export function ReadingTimeCalculatorTool() {
             <button
               key={preset.val}
               type="button"
-              onClick={() => setWpm(preset.val)}
+              onClick={() => setWpmStr(String(preset.val))}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                 wpm === preset.val
                   ? 'bg-[#12345A] text-white'
@@ -218,8 +243,9 @@ export function ReadingTimeCalculatorTool() {
             type="number"
             min={60}
             max={600}
-            value={wpm}
-            onChange={(e) => setWpm(Math.min(600, Math.max(60, Number(e.target.value) || 200)))}
+            value={wpmStr}
+            onChange={(e) => setWpmStr(e.target.value)}
+            onBlur={() => setWpmStr(String(wpm))}
             className="w-20 h-9 px-2.5 rounded-lg border border-[#D4E0EE] bg-white text-sm font-mono text-[#12345A] tabular-nums"
           />
         </div>
@@ -232,14 +258,28 @@ export function ReadingTimeCalculatorTool() {
         <StatTile label="Total Words" value={metrics.words.toLocaleString()} />
       </div>
 
-      <textarea
-        rows={8}
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        aria-label="Article or speech text"
-        placeholder="Paste your blog post, newsletter, or presentation script here..."
-        className="w-full p-4 rounded-xl border border-[#D4E0EE] bg-[#FAFBFD] focus:bg-white text-sm sm:text-base text-[#10243E] focus:outline-none focus:ring-2 focus:ring-[#16C6C9]/40"
-      />
+      <div>
+        <div className="flex items-center justify-between mb-1.5">
+          <label htmlFor="reading-time-input" className="text-sm font-medium text-[#12345A]">
+            Article or script text
+          </label>
+          <button
+            type="button"
+            onClick={() => setText(SAMPLE_ARTICLE)}
+            className="text-xs font-medium text-[#0C8588] hover:text-[#12345A] underline underline-offset-2"
+          >
+            Load sample text
+          </button>
+        </div>
+        <textarea
+          id="reading-time-input"
+          rows={8}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Paste your blog post, newsletter, or presentation script here..."
+          className="w-full p-4 rounded-xl border border-[#D4E0EE] bg-[#FAFBFD] focus:bg-white text-sm sm:text-base text-[#10243E] focus:outline-none focus:ring-2 focus:ring-[#16C6C9]/40"
+        />
+      </div>
 
       <div className="flex justify-end gap-2">
         <CopyButton
@@ -264,7 +304,8 @@ export function TextReverserTool() {
       return Array.from(input).reverse().join('');
     }
     if (mode === 'words') {
-      return input.trim().split(/\s+/).reverse().join(' ');
+      const trimmed = input.trim();
+      return trimmed ? trimmed.split(/\s+/).reverse().join(' ') : '';
     }
     if (mode === 'each-word') {
       return input.replace(/\S+/g, (word) => Array.from(word).reverse().join(''));
@@ -308,6 +349,7 @@ export function TextReverserTool() {
             rows={7}
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            placeholder="Enter text to reverse..."
             className="w-full p-3.5 rounded-xl border border-[#D4E0EE] bg-[#FAFBFD] focus:bg-white text-sm text-[#10243E] focus:outline-none focus:ring-2 focus:ring-[#16C6C9]/40"
           />
         </div>
@@ -320,6 +362,7 @@ export function TextReverserTool() {
             rows={7}
             value={output}
             readOnly
+            placeholder="Reversed result appears here..."
             className="w-full p-3.5 rounded-xl border border-[#D4E0EE] bg-[#F8FBFF] text-sm text-[#10243E] focus:outline-none"
           />
         </div>
@@ -396,6 +439,15 @@ export function GradientGeneratorTool() {
     setStops((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
   };
 
+  const resetGradient = () => {
+    setType('linear');
+    setAngle(135);
+    setStops([
+      { id: 1, color: '#12345A', position: 0 },
+      { id: 2, color: '#16C6C9', position: 100 },
+    ]);
+  };
+
   const downloadPng = () => {
     const canvas = document.createElement('canvas');
     canvas.width = 1200;
@@ -443,7 +495,8 @@ export function GradientGeneratorTool() {
       <div
         className="w-full h-56 sm:h-64 rounded-xl border border-[#DCE5F0]"
         style={{ background: cssValue }}
-        aria-label="Live CSS gradient preview"
+        role="img"
+        aria-label={`Live CSS ${type} gradient preview`}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -502,14 +555,14 @@ export function GradientGeneratorTool() {
               </button>
             </div>
 
-            {stops.map((stop) => (
+            {stops.map((stop, idx) => (
               <div
                 key={stop.id}
                 className="flex items-center gap-3 p-2.5 rounded-lg border border-[#E2EAF4] bg-[#F8FBFF]"
               >
                 <input
                   type="color"
-                  aria-label="Color stop hex"
+                  aria-label={`Color stop ${idx + 1} hex`}
                   value={stop.color}
                   onChange={(e) => updateStop(stop.id, { color: e.target.value })}
                   className="w-9 h-9 rounded border border-[#D4E0EE] bg-white cursor-pointer p-0.5"
@@ -519,7 +572,7 @@ export function GradientGeneratorTool() {
                 </span>
                 <input
                   type="range"
-                  aria-label="Color stop position percentage"
+                  aria-label={`Color stop ${idx + 1} position percentage`}
                   min={0}
                   max={100}
                   value={stop.position}
@@ -533,7 +586,7 @@ export function GradientGeneratorTool() {
                   type="button"
                   onClick={() => removeStop(stop.id)}
                   disabled={stops.length <= 2}
-                  aria-label="Remove color stop"
+                  aria-label={`Remove color stop ${idx + 1}`}
                   className="p-1.5 text-[#7E92AA] hover:text-[#B32D2A] disabled:opacity-35"
                 >
                   <Trash2 className="w-4 h-4" aria-hidden="true" />
@@ -593,6 +646,7 @@ export function GradientGeneratorTool() {
               <span>Download PNG</span>
             </button>
             <CopyButton value={fullCssRule} label="Copy CSS" />
+            <ClearButton onClick={resetGradient} label="Reset" />
           </div>
         </div>
       </div>

@@ -5,6 +5,7 @@ interface PageMetaOptions {
   title: string;
   description: string;
   path: string;
+  robots?: string;
   schema?: Record<string, unknown>;
 }
 
@@ -18,13 +19,20 @@ function upsertMeta(attr: 'name' | 'property', key: string, content: string) {
   el.setAttribute('content', content);
 }
 
-export function usePageMeta({ title, description, path, schema }: PageMetaOptions) {
+export function usePageMeta({
+  title,
+  description,
+  path,
+  robots = 'index, follow',
+  schema,
+}: PageMetaOptions) {
   useEffect(() => {
     const normalizedPath = path.startsWith('/') ? path : `/${path}`;
     const canonicalUrl = `${SITE_CONFIG.domain}${normalizedPath}`;
 
     document.title = title;
     upsertMeta('name', 'description', description);
+    upsertMeta('name', 'robots', robots);
     upsertMeta('property', 'og:title', title);
     upsertMeta('property', 'og:description', description);
     upsertMeta('property', 'og:url', canonicalUrl);
@@ -52,5 +60,5 @@ export function usePageMeta({ title, description, path, schema }: PageMetaOption
       script.text = JSON.stringify(schema);
       document.head.appendChild(script);
     }
-  }, [title, description, path, schema]);
+  }, [title, description, path, robots, schema]);
 }

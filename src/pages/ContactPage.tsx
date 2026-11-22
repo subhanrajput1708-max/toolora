@@ -59,7 +59,7 @@ export function ContactPage() {
             Feedback &amp; Support
           </h2>
           <p className="mt-1.5 text-sm text-[#4B617D] leading-relaxed">
-            Have questions about one of our guides, accessibility improvements, or site policies? Send a note anytime for a direct response.
+            Have questions about a specific tool, accessibility improvements, or site policies? Send a note anytime for a direct response.
           </p>
         </div>
       </div>

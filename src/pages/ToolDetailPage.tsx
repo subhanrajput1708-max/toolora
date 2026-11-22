@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowRight, BookOpen, Check, ChevronDown, Info } from 'lucide-react';
+import { ArrowRight, Check, ChevronDown, Compass, Info } from 'lucide-react';
 import { ALL_TOOLS, getCategoryById, getToolBySlug } from '../data/tools';
 import { TOOL_DETAILS } from '../data/toolDetails';
-import { ALL_GUIDES } from '../data/guides';
 import { SITE_CONFIG } from '../data/site';
 import { usePageMeta } from '../utils/seo';
+import { useAiChat } from '../context/AiChatContext';
 import { Breadcrumbs } from '../components/Breadcrumbs';
 import { ToolIcon } from '../components/ToolIcon';
 import { ToolRenderer } from '../components/tools/ToolRenderer';
@@ -16,25 +16,65 @@ export function ToolDetailPage() {
   const tool = getToolBySlug(slug);
   const details = tool ? TOOL_DETAILS[tool.slug] : undefined;
   const [openFaqIdx, setOpenFaqIdx] = useState<number | null>(0);
+  const { openChat } = useAiChat();
+
+  const category = tool ? getCategoryById(tool.categoryId) : undefined;
 
   const schema = useMemo(() => {
-    if (!tool) return undefined;
-    const baseApp: Record<string, unknown> = {
+    if (!tool || !category) return undefined;
+    return {
       '@context': 'https://schema.org',
-      '@type': 'WebApplication',
-      name: `${tool.name} — TooloraHub`,
-      url: `${SITE_CONFIG.domain}${tool.path}`,
-      applicationCategory: 'UtilitiesApplication',
-      operatingSystem: 'All',
-      description: tool.metaDescription,
-      offers: {
-        '@type': 'Offer',
-        price: '0',
-        priceCurrency: 'USD',
-      },
+      '@graph': [
+        {
+          '@type': 'SoftwareApplication',
+          name: `${tool.name} — TooloraHub`,
+          url: `${SITE_CONFIG.domain}${tool.path}`,
+          applicationCategory: 'UtilitiesApplication',
+          operatingSystem: 'All',
+          browserRequirements: 'Requires JavaScript in a modern web browser',
+          description: tool.metaDescription,
+          author: {
+            '@type': 'Person',
+            name: SITE_CONFIG.developer.name,
+          },
+          offers: {
+            '@type': 'Offer',
+            price: '0',
+            priceCurrency: 'USD',
+          },
+        },
+        {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            {
+              '@type': 'ListItem',
+              position: 1,
+              name: 'Home',
+              item: `${SITE_CONFIG.domain}/`,
+            },
+            {
+              '@type': 'ListItem',
+              position: 2,
+              name: 'All Tools',
+              item: `${SITE_CONFIG.domain}/tools/`,
+            },
+            {
+              '@type': 'ListItem',
+              position: 3,
+              name: category.shortName,
+              item: `${SITE_CONFIG.domain}/tools/?category=${category.id}`,
+            },
+            {
+              '@type': 'ListItem',
+              position: 4,
+              name: tool.name,
+              item: `${SITE_CONFIG.domain}${tool.path}`,
+            },
+          ],
+        },
+      ],
     };
-    return baseApp;
-  }, [tool]);
+  }, [tool, category]);
 
   usePageMeta({
     title: tool ? tool.metaTitle : 'Tool Not Found | TooloraHub',
@@ -43,15 +83,13 @@ export function ToolDetailPage() {
     schema,
   });
 
-  if (!tool) {
+  if (!tool || !category) {
     return <NotFoundPage />;
   }
 
-  const category = getCategoryById(tool.categoryId);
   const relatedTools = ALL_TOOLS.filter(
     (t) => t.categoryId === tool.categoryId && t.slug !== tool.slug
   ).slice(0, 4);
-  const relatedGuides = ALL_GUIDES.filter((g) => g.relatedToolSlugs.includes(tool.slug));
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
@@ -224,7 +262,7 @@ export function ToolDetailPage() {
           )}
         </div>
 
-        {/* Sidebar: Related Tools & Related Guides */}
+        {/* Sidebar: Related Tools & Toolora Assistant */}
         <aside className="lg:col-span-4 space-y-6">
           <div className="bg-white rounded-xl border border-[#DCE5F0] p-6">
             <div className="flex items-center justify-between gap-2 mb-4">
@@ -262,36 +300,27 @@ export function ToolDetailPage() {
             </div>
           </div>
 
-          {relatedGuides.length > 0 && (
-            <div className="bg-white rounded-xl border border-[#DCE5F0] p-6 space-y-3">
-              <h2 className="font-display font-semibold text-lg text-[#12345A]">
-                Related Guides
+          <div className="bg-[#FAFBFD] rounded-xl border border-[#DCE5F0] p-6 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-9 h-9 rounded-lg bg-[#12345A] text-[#16C6C9] inline-flex items-center justify-center shrink-0">
+                <Compass className="w-4 h-4" aria-hidden="true" />
+              </span>
+              <h2 className="font-display font-semibold text-base text-[#12345A]">
+                Need help with {tool.name}?
               </h2>
-              {relatedGuides.map((guide) => (
-                <Link
-                  key={guide.id}
-                  to={guide.path}
-                  className="flex items-start justify-between gap-3 p-3.5 rounded-lg border border-[#E2EAF4] bg-[#FAFBFD] hover:bg-white hover:border-[#16C6C9] transition-colors"
-                >
-                  <div className="flex items-start gap-2.5 min-w-0">
-                    <BookOpen
-                      className="w-4 h-4 text-[#0FA7AA] shrink-0 mt-0.5"
-                      aria-hidden="true"
-                    />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-[#12345A] leading-snug">
-                        {guide.title}
-                      </div>
-                      <div className="mt-1 text-xs text-[#5B708B]">
-                        {guide.category} · {guide.readTime}
-                      </div>
-                    </div>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-[#0FA7AA] shrink-0 mt-0.5" aria-hidden="true" />
-                </Link>
-              ))}
             </div>
-          )}
+            <p className="text-sm text-[#4B617D] leading-relaxed">
+              Open Toolora Assistant to view {tool.name} features, usage steps, or related tools in {category.shortName}.
+            </p>
+            <button
+              type="button"
+              onClick={() => openChat(tool.name)}
+              className="w-full h-10 px-4 rounded-lg bg-[#12345A] text-white text-sm font-semibold hover:bg-[#1A4678] transition-colors inline-flex items-center justify-center gap-2"
+            >
+              <span>Ask Toolora Assistant</span>
+              <ArrowRight className="w-4 h-4 text-[#16C6C9]" aria-hidden="true" />
+            </button>
+          </div>
         </aside>
       </div>
     </div>

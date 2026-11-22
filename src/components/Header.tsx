@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Link, NavLink, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Menu, Search, X, ArrowRight } from 'lucide-react';
 import { ALL_TOOLS, getCategoryById } from '../data/tools';
 import { SITE_CONFIG } from '../data/site';
@@ -7,11 +7,11 @@ import { ToolIcon } from './ToolIcon';
 import { withBase } from '../utils/paths';
 
 const NAV_LINKS = [
-  { to: '/', label: 'Home', end: true },
-  { to: '/tools/', label: 'All Tools', end: false },
-  { to: '/guides/', label: 'Guides', end: false },
-  { to: '/about/', label: 'About Us', end: false },
-  { to: '/contact/', label: 'Contact Us', end: false },
+  { to: '/', label: 'Home', matchType: 'home' as const },
+  { to: '/tools/', label: 'Tools', matchType: 'prefix' as const },
+  { to: '/#explore-all-tools', label: 'Explore All Tools', matchType: 'explore-hash' as const },
+  { to: '/about/', label: 'About Us', matchType: 'prefix' as const },
+  { to: '/contact/', label: 'Contact Us', matchType: 'prefix' as const },
 ];
 
 export function Header() {
@@ -20,6 +20,24 @@ export function Header() {
   const [query, setQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const isNavItemActive = (item: (typeof NAV_LINKS)[number]) => {
+    const currentPath = location.pathname.endsWith('/')
+      ? location.pathname
+      : `${location.pathname}/`;
+    if (item.matchType === 'home') {
+      return currentPath === '/' && location.hash !== '#explore-all-tools';
+    }
+    if (item.matchType === 'explore-hash') {
+      return currentPath === '/' && location.hash === '#explore-all-tools';
+    }
+    return currentPath.startsWith(item.to);
+  };
+
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [location.pathname, location.hash]);
 
   const matchingTools = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -89,23 +107,24 @@ export function Header() {
           </Link>
 
           {/* Zone 2: Clean single-line navigation links */}
-          <nav aria-label="Main navigation" className="hidden md:flex items-center gap-6 lg:gap-7">
-            {NAV_LINKS.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `text-sm font-medium whitespace-nowrap shrink-0 py-1 border-b-2 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#16C6C9] ${
-                    isActive
+          <nav aria-label="Main navigation" className="hidden md:flex items-center gap-5 lg:gap-7">
+            {NAV_LINKS.map((item) => {
+              const active = isNavItemActive(item);
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  aria-current={active ? 'page' : undefined}
+                  className={`text-sm font-medium whitespace-nowrap shrink-0 py-1 border-b-2 transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#16C6C9] ${
+                    active
                       ? 'text-[#12345A] border-[#16C6C9]'
                       : 'text-[#4B617D] border-transparent hover:text-[#12345A] hover:border-[#B9CDE4]'
-                  }`
-                }
-              >
-                {item.label}
-              </NavLink>
-            ))}
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              );
+            })}
           </nav>
 
           {/* Zone 3: Primary Action (Search trigger + mobile menu trigger) */}
@@ -142,24 +161,25 @@ export function Header() {
             aria-label="Mobile navigation"
             className="md:hidden border-t border-[#DCE5F0] bg-white px-4 py-3 space-y-1 shadow-sm"
           >
-            {NAV_LINKS.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                onClick={() => setMobileMenuOpen(false)}
-                className={({ isActive }) =>
-                  `flex items-center justify-between min-h-[44px] px-3 rounded-lg text-base font-medium transition-colors ${
-                    isActive
+            {NAV_LINKS.map((item) => {
+              const active = isNavItemActive(item);
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setMobileMenuOpen(false)}
+                  aria-current={active ? 'page' : undefined}
+                  className={`flex items-center justify-between min-h-[44px] px-3 rounded-lg text-base font-medium transition-colors ${
+                    active
                       ? 'bg-[#EEF6FB] text-[#12345A]'
                       : 'text-[#39506B] hover:bg-[#F5F8FC] hover:text-[#12345A]'
-                  }`
-                }
-              >
-                <span>{item.label}</span>
-                <ArrowRight className="w-4 h-4 text-[#0FA7AA]" aria-hidden="true" />
-              </NavLink>
-            ))}
+                  }`}
+                >
+                  <span>{item.label}</span>
+                  <ArrowRight className="w-4 h-4 text-[#0FA7AA]" aria-hidden="true" />
+                </Link>
+              );
+            })}
           </nav>
         )}
       </header>
@@ -184,7 +204,7 @@ export function Header() {
                 type="search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search tools — word counter, calculator, text cleaner..."
+                placeholder={`Search ${ALL_TOOLS.length} tools — word counter, EMI, JSON, password...`}
                 aria-label="Search tools"
                 className="w-full text-sm sm:text-base text-[#10243E] placeholder:text-[#6B809A] bg-transparent focus:outline-none"
               />
@@ -228,7 +248,7 @@ export function Header() {
                 })
               ) : (
                 <div className="px-4 py-8 text-center text-sm text-[#5B708B]">
-                  No tools matched &ldquo;{query}&rdquo;. Try searching for words, URL, QR, or date.
+                  No tools matched &ldquo;{query}&rdquo;. Try searching for words, EMI, JSON, QR, or date.
                 </div>
               )}
             </div>
@@ -240,7 +260,7 @@ export function Header() {
                 onClick={() => setSearchOpen(false)}
                 className="font-medium text-[#12345A] hover:text-[#0C8588]"
               >
-                View all 22 tools
+                View all {ALL_TOOLS.length} tools
               </Link>
             </div>
           </div>

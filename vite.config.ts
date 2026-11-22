@@ -4,13 +4,13 @@ import fs from 'fs';
 import path from 'path';
 import { defineConfig } from 'vite';
 import { ALL_TOOLS } from './src/data/tools';
-import { ALL_GUIDES } from './src/data/guides';
 import { SITE_CONFIG } from './src/data/site';
 
 interface StaticRouteMeta {
   routePath: string;
   title: string;
   description: string;
+  robots?: string;
 }
 
 function normalizeBasePath(raw?: string): string {
@@ -31,12 +31,17 @@ function injectRouteMeta(baseHtml: string, meta: StaticRouteMeta): string {
   const canonicalUrl = `${SITE_CONFIG.domain}${meta.routePath}`;
   const safeTitle = escapeHtmlAttr(meta.title);
   const safeDesc = escapeHtmlAttr(meta.description);
+  const safeRobots = escapeHtmlAttr(meta.robots ?? 'index, follow');
 
   return baseHtml
     .replace(/<title>.*?<\/title>/s, `<title>${safeTitle}</title>`)
     .replace(
       /<meta\s+name="description"\s+content="[^"]*"\s*\/?>/s,
       `<meta name="description" content="${safeDesc}" />`
+    )
+    .replace(
+      /<meta\s+name="robots"\s+content="[^"]*"\s*\/?>/s,
+      `<meta name="robots" content="${safeRobots}" />`
     )
     .replace(
       /<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>/s,
@@ -65,7 +70,7 @@ function injectRouteMeta(baseHtml: string, meta: StaticRouteMeta): string {
 }
 
 export default defineConfig(() => {
-  const basePath = normalizeBasePath(process.env.VITE_BASE_PATH);
+  const basePath = normalizeBasePath(process.env.VITE_BASE_PATH || '/');
 
   return {
     base: basePath,
@@ -76,10 +81,11 @@ export default defineConfig(() => {
         name: 'rewrite-public-favicon-base',
         transformIndexHtml(html: string): string {
           if (basePath === '/') return html;
-          return html.replace(/href="\/logo\.png"/g, `href="${basePath}logo.png"`);
+          return html
+            .replace(/href="\/logo\.png"/g, `href="${basePath}logo.png"`)
+            .replace(/href="\/sitemap\.xml"/g, `href="${basePath}sitemap.xml"`);
         },
       },
-      // Copies src/assets into dist/ and generates static per-route HTML entry points + 404.html for GitHub Pages
       {
         name: 'copy-assets-and-static-routes',
         apply: 'build',
@@ -88,12 +94,6 @@ export default defineConfig(() => {
             return;
           }
           const distDir = path.resolve(__dirname, 'dist');
-          const srcAssets = path.resolve(__dirname, 'src/assets');
-          const distAssets = path.resolve(distDir, 'src/assets');
-          if (fs.existsSync(distDir) && fs.existsSync(srcAssets)) {
-            fs.cpSync(srcAssets, distAssets, { recursive: true, force: true });
-          }
-
           const indexHtmlPath = path.join(distDir, 'index.html');
           if (!fs.existsSync(indexHtmlPath)) return;
           const baseHtml = fs.readFileSync(indexHtmlPath, 'utf-8');
@@ -101,55 +101,50 @@ export default defineConfig(() => {
           const staticRoutes: StaticRouteMeta[] = [
             {
               routePath: '/tools/',
-              title: 'All Free Online Tools — 22 Everyday Utilities | TooloraHub',
+              title: 'All 50 Free Online Tools | TooloraHub',
               description:
-                'Browse all 22 free online tools on TooloraHub across Text & Writing, Web & Internet, Everyday Calculators, and File & Productivity.',
-            },
-            {
-              routePath: '/guides/',
-              title: 'Guides & Practical Tips — Digital Productivity & Formatting | TooloraHub',
-              description:
-                'Explore practical guides on text formatting, URL slugs, HTML entities, everyday calculations, and browser productivity.',
+                'Browse all 50 free browser-based utilities on TooloraHub across Text, Calculators, Finance, Date & Time, Conversions, Productivity, and Web Tools.',
             },
             {
               routePath: '/about/',
-              title: 'About Us — TooloraHub & Developer Muhammad Subhan',
+              title: 'About TooloraHub & Muhammad Subhan | TooloraHub',
               description:
-                'Learn about TooloraHub, our focus on simple browser-based utilities, and developer Muhammad Subhan with 6 years of web development experience.',
+                'Learn what TooloraHub is, how its 50 utilities across 7 categories and Toolora Assistant work, and meet developer Muhammad Subhan (6 years of experience).',
             },
             {
               routePath: '/contact/',
-              title: 'Contact Us — Reach Developer Muhammad Subhan | TooloraHub',
+              title: 'Contact Us — Support & Tool Ideas | TooloraHub',
               description:
-                'Contact TooloraHub developer Muhammad Subhan via email, phone, or the validated contact form for tool suggestions or support.',
+                'Contact TooloraHub developer Muhammad Subhan via email, phone, or the validated email-draft form for tool ideas, bug reports, or feedback.',
+            },
+            {
+              routePath: '/sitemap/',
+              title: 'Sitemap — All Pages & 50 Free Tools | TooloraHub',
+              description:
+                'Browse the complete TooloraHub sitemap with direct links to all 50 free browser tools across 7 categories, core site pages, and legal policies.',
             },
             {
               routePath: '/privacy-policy/',
               title: 'Privacy Policy | TooloraHub',
               description:
-                'Read the TooloraHub Privacy Policy explaining how tools process input inside your browser and how direct contact inquiries are handled.',
+                'Read TooloraHub’s Privacy Policy covering local browser tools, Toolora Assistant, voluntary contact details, cookies, and user rights.',
             },
             {
               routePath: '/terms-and-conditions/',
               title: 'Terms & Conditions | TooloraHub',
               description:
-                'Review the Terms & Conditions for accessing and using the free online utilities and guides published on TooloraHub.',
+                'Review TooloraHub’s Terms & Conditions covering permitted use, user responsibilities, accuracy limits, intellectual property, and liability.',
             },
             {
               routePath: '/disclaimer/',
               title: 'Disclaimer | TooloraHub',
               description:
-                'Read the TooloraHub Disclaimer regarding calculation estimates, unit conversions, and informational guide content.',
+                'Read the TooloraHub Disclaimer regarding general informational use, calculator and tool guide limitations, and verification responsibilities.',
             },
             ...ALL_TOOLS.map((tool) => ({
               routePath: tool.path,
               title: tool.metaTitle,
               description: tool.metaDescription,
-            })),
-            ...ALL_GUIDES.map((guide) => ({
-              routePath: guide.path,
-              title: guide.metaTitle,
-              description: guide.metaDescription,
             })),
           ];
 
@@ -161,13 +156,44 @@ export default defineConfig(() => {
             fs.writeFileSync(path.join(targetDir, 'index.html'), injectRouteMeta(baseHtml, route), 'utf-8');
           }
 
-          // Generate 404.html for GitHub Pages so unknown URLs render the React 404 page directly without redirecting to homepage
           const notFoundHtml = injectRouteMeta(baseHtml, {
             routePath: '/404.html',
             title: 'Page Not Found (404) | TooloraHub',
             description: 'The requested page could not be found on TooloraHub.',
+            robots: 'noindex, follow',
           });
           fs.writeFileSync(path.join(distDir, '404.html'), notFoundHtml, 'utf-8');
+
+          // Generate up-to-date SEO XML sitemap for all canonical indexable URLs
+          const lastMod = new Date().toISOString().slice(0, 10);
+          const xmlEntries: Array<{ path: string; changefreq: string; priority: string }> = [
+            { path: '/', changefreq: 'weekly', priority: '1.0' },
+            { path: '/tools/', changefreq: 'weekly', priority: '0.9' },
+            { path: '/sitemap/', changefreq: 'weekly', priority: '0.7' },
+            { path: '/about/', changefreq: 'monthly', priority: '0.7' },
+            { path: '/contact/', changefreq: 'monthly', priority: '0.7' },
+            { path: '/privacy-policy/', changefreq: 'yearly', priority: '0.4' },
+            { path: '/terms-and-conditions/', changefreq: 'yearly', priority: '0.4' },
+            { path: '/disclaimer/', changefreq: 'yearly', priority: '0.4' },
+            ...ALL_TOOLS.map((tool) => ({
+              path: tool.path,
+              changefreq: 'monthly',
+              priority: '0.8',
+            })),
+          ];
+
+          const xmlBody = [
+            '<?xml version="1.0" encoding="UTF-8"?>',
+            '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+            ...xmlEntries.map(
+              (item) =>
+                `  <url>\n    <loc>${SITE_CONFIG.domain}${item.path}</loc>\n    <lastmod>${lastMod}</lastmod>\n    <changefreq>${item.changefreq}</changefreq>\n    <priority>${item.priority}</priority>\n  </url>`
+            ),
+            '</urlset>',
+            '',
+          ].join('\n');
+
+          fs.writeFileSync(path.join(distDir, 'sitemap.xml'), xmlBody, 'utf-8');
         },
       },
     ],
